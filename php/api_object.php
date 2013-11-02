@@ -6,6 +6,7 @@ require_once('update_record.php');
 require_once('update_all_record.php');
 require_once('get_record.php');
 require_once('get_record_count.php');
+require_once('get_record_inner_join.php');
 require_once('build_questions.php');
 // Include Helper Classes
 require_once('dbcore.class.php');
@@ -375,7 +376,7 @@ class APIObject {
  	// Functions returns an integer of the MySQL COUNT(*) clause
  	// Example:
  	// URL/Endpoint: 'api.php?method=getRecordCount'
-    // Request Body: {"table": "question", "fields": ["distinct `page`"], "where":{"active":"1"}}
+    // Request Body: {"table": "question", "fields": ["distinct page"], "where":{"active":"1"}}
     // Output: 3
     // Alternative Request Body: {"table": "question", "fields": ["*"], "where":{"active":"1"}}
     // Output: 7
@@ -389,6 +390,15 @@ class APIObject {
 		echo $cc->count;
     }   
     
+     public function getRecordInnerJoin() {
+    	
+    	$this->connectDB();
+    	$rec = new GetRecordInnerJoin($this);
+		$this->ResponseBody = $rec->dBQuery(trim($this->getBody()));
+		echo $this->ResponseBody;
+		$this->disconnectDB();
+    }   
+
     
     // Function to return a query of the Dog table.  This is a front-end to the GetRecord method
     // Usage Instructions:

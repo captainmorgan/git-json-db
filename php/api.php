@@ -71,6 +71,9 @@ if (isset($_REQUEST['method'])) {
         case 'getRecordCount':
         	$object->getRecordCount();
         	break;        	
+        case 'getRecordInnerJoin':
+        	$object->getRecordInnerJoin();
+        	break;          	
         case 'getQuestions':
         	$object->getQuestions(($_GET['payload']));
         	//$object->getQuestions();
