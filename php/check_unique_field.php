@@ -76,7 +76,6 @@ $email = mysql_real_escape_string($email);
 	}
 	else {
 
-debug("Trying...");
 // Query the database for this username.  Return an integer 1 if is found
 try {
 	$core = DBCore::getInstance();

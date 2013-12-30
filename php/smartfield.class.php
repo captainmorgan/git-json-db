@@ -36,14 +36,14 @@ Class SmartField {
     {
         unset($this->inputData);
         unset($this->validatedData);
-        debug("Called SmartField Destructor");
+        //debug("Called SmartField Destructor");
     }
 	
 	// Do a validation against SQL Injection.  We allow alphanumeric, @, -, _ (No .)
 	public function isUsernameFriendly () {
 	
 		if(preg_match('/[^a-z_\-0-9\(@)(-)(_)]/i', $this->inputData)) {
-			debug("Data was provided, but was not alphanumeric");
+			//debug("Data was provided, but was not alphanumeric");
 			return false;
 		}
 		else {
@@ -57,12 +57,12 @@ Class SmartField {
 	public function isNumbers () {
 	
 		if(preg_match('/^[0-9]+$/', $this->inputData)) {
-			debug("A valid number");
+			//debug("A valid number");
 			$this->validatedData = $this->inputData;
 			return true;
 		}
 		else {
-			debug("Not a number");
+			//debug("Not a number");
 			return false;
 		}
 	}
@@ -71,12 +71,12 @@ Class SmartField {
 	public function isEmail () {
 	
 		if(preg_match('/^[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,3})$/', $this->inputData)) {
-			debug("A valid email");
+			//debug("A valid email");
 			$this->validatedData = $this->inputData;
 			return true;
 		}
 		else {
-			debug("Not an email");
+			//debug("Not an email");
 			return false;
 		}
 	}
@@ -89,7 +89,7 @@ Class SmartField {
 			return $this->validatedData;
 		}
 		else {
-			debug("Nothing to set");
+			//debug("Nothing to set");
 			}
 	}
 

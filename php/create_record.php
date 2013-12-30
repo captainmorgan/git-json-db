@@ -1,7 +1,7 @@
 <?php
 
 /*
-	CreateRecord takes two JSONs are input; one is the schema (the table and columns)
+	CreateRecord takes two JSONs as input; one is the schema (the table and columns)
 	the other is the data to insert into the record.
 	
 	The API hardcodes in the schemas because 1. We know them and 2. We don't want to allow
@@ -21,8 +21,8 @@
 	--
 	
 		Data JSON Example:
-		{"first_name":"Christopher","last_name":"Morgan","phone":"8083669175","email":"christopher.t.morgan@gmdddail.com","marketing_email":"","address_street":"2146 Erie Street","address2":"","city":"San Diego","state":"CA","zip":"92110","country":"United States","company":"","work_phone":"8083669175","work_street1":"","work_street2":"","work_city":"San Diego","work_state":"CA","work_zip":"","work_country":"United States","email_pref":"1","referral":"Something-else","dob":"1982-10-04"}
-
+		{"first_name":"Christopher","last_name":"Morgan","phone":"8083669175","email":"christophdder.t.morgan@gmdddail.com","marketing_email":"","address_street":"2146 Erie Street","address2":"","city":"San Diego","state":"CA","zip":"92110","country":"United States","company":"","work_phone":"8083669175","work_street1":"","work_street2":"","work_city":"San Diego","work_state":"CA","work_zip":"","work_country":"United States","email_pref":"1","referral":"Something-else","dob":"1982-10-04"}
+		{"tag":"1","dog_name":"Ele","customer_last_name":"Morgan","status":""}
 
 */
 

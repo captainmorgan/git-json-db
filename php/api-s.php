@@ -8,6 +8,7 @@ PhpConsole\Helper::register();
 
 
 require_once('api_object.php'); // including service class to work with database
+require_once('api_secure.php');
 
 session_start();
 
@@ -31,25 +32,15 @@ if(getenv('REQUEST_METHOD') == 'POST') {
     }
 }
 
-/*
-// Grab payload
-if (isset($_GET['payload'])) {
-	$object->setPayload($_GET['payload']);
-	$pl = ($_GET['payload']);
-}
-
-// Grab the schema label
-if (isset($_GET['schema'])) {
-	$object->setSchema($_GET['schema']);
-	//$pl = ($_GET['payload']);
-}
-*/
 
 if (isset($_REQUEST['apikey']))
 {
-	echo "API Key included" . $_REQUEST['apikey'];
+	echo "API Key included" . $_REQUEST['apikey'] . " ";
 	//echo $_REQUEST['apikey']);
 	setUserSession($_REQUEST['apikey']);
+	$token = new APISecure();
+	//$token->test();
+	$token->generateToken($_SERVER);
 }
 
 if (isset($_REQUEST['method'])) {

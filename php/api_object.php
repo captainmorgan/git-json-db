@@ -1,5 +1,20 @@
 <?php
 
+/*
+Project Description:
+This is an API framework to interact with a database using REST web services.
+You can use this API to perform standard CRUD (Create, Retreive, Update and Delete functions.
+
+This API will also interact with the database using various users, each having been granted
+lease priviledge for the requested function.  
+
+
+Author: Christopher Morgan
+Contact: christopher.t.morgan -at- gmail
+Copyright 2013
+*/
+
+
 // Include Major Child Classes
 require_once('create_record.php');
 require_once('update_record.php');
@@ -36,6 +51,7 @@ class APIObject {
 						\"table\":\"customer\",
 						\"fields\":
 									[
+									\"salutation\",
    									\"first_name\",
     								\"last_name\",
 									\"phone\",
@@ -65,13 +81,15 @@ class APIObject {
 	
 	/* protected $schemaLabel_dog = "{\"table\":\"dog\", \"fields\":[\"dog_name\", \"breed\", \"dog_notes\",\"owner_id\"]}"; */
     
-    protected $schemaLabel_dog = "{\"table\":\"dog\", \"fields\":[\"dog_name\", \"breed\", \"behaviors\", \"allergies\", \"dog_birthday\", \"dog_dhp\", \"dog_rabies\", \"dog_bordetella\", \"dog_giardia\", \"vet\", \"dog_notes\", \"owner_id\"]}";
+    protected $schemaLabel_dog = "{\"table\":\"dog\", \"fields\":[\"dog_name\", \"breed\", \"behaviors\", \"allergies\", \"dog_birthday\", \"dog_dhp\", \"dog_rabies\", \"dog_bordetella\", \"dog_giardia\", \"vet\", \"dog_notes\", \"gender\", \"furcolor\", \"pawwidth\", \"neckgirth\", \"waistgirth\", \"height\", \"license\", \"microchip\", \"owner_id\"]}";
     
     protected $schemaLabel_delegate = "{\"table\":\"delegate\", \"fields\":[\"first_name\",\"last_name\",\"phone\",\"email\",\"owner_id\"]}";
     
     protected $schemaLabel_question = "{\"table\": \"question\", \"fields\": [\"text\", \"type\", \"options\", \"default\", \"guidelines\"]}";
 
     protected $schemaLabel_simpletest = "{\"table\": \"simpletest\", \"fields\": [\"id\", \"one\", \"two\"]}";
+    
+    protected $schemaLabel_daycare = "{\"table\": \"daycare\", \"fields\": [\"tag\", \"dog_name\", \"dog_id\", \"customer_last_name\", \"status\", \"trainer\", \"location\", \"sublocation\", \"time_check_in\", \"time_check_out\"]}";    
     
     //protected $schemaLabel_simpletest = "{\"table\": \"simpletest\",\"set\": {\"one\": \"jupiter\"}, \"where\": {\"id\": \"1\"}}";
 
@@ -124,10 +142,10 @@ class APIObject {
 			$db->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 			$db->conn->exec('SET NAMES utf8');
 			$this->conn = $db->conn;
-			debug("Successfully connected to database.");
+			//debug("Successfully connected to database.");
 		} catch(PDOException $e) {
    			echo 'ERROR: ' . $e->getMessage();
-   			debug("Unsuccessful in connecting to database...");
+   			//debug("Unsuccessful in connecting to database...");
    			exit();
 		} 			
  	
@@ -148,10 +166,10 @@ class APIObject {
     		$this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     		// Make sure we are talking to the database in UTF-8
    			$this->conn->exec('SET NAMES utf8');
-			debug("Successfully connected to database.");
+			//debug("Successfully connected to database.");
 		} catch(PDOException $e) {
    			echo 'ERROR: ' . $e->getMessage();
-   			debug("Unsuccessful in connecting to database...");
+   			//debug("Unsuccessful in connecting to database...");
    			exit();
 		}
     }
@@ -162,7 +180,7 @@ class APIObject {
     		$this->conn = null;
     	} catch(PDOException $e) {
    			echo 'ERROR: ' . $e->getMessage();
-   			debug("Unsuccessful in disconnecting to database...");
+   			//debug("Unsuccessful in disconnecting to database...");
    			exit();
 		}
     }
@@ -220,6 +238,9 @@ class APIObject {
     	case "delegate":
         	return trim($this->schemaLabel_delegate);
        	 	break;      
+    	case "daycare":
+        	return trim($this->schemaLabel_daycare);
+       	 	break; 
        	 case "question":
         	return trim($this->schemaLabel_question);
        	 	break;    	 	       	 	
@@ -320,15 +341,20 @@ class APIObject {
     
      // The UpdateAll method; a different way to update records
      // Usage:
-     //		api.php?method=updateAllRecord&payload=5&schema=dogtest
-     //		where "payload" is the ID of the record and 
+     //		api.php?method=updateAllRecord&schema=dogtest&pkey=7
+     //		where "pkey" is the Primary Key ID of the record and
+     //	UpdateAll is relevant because it uses a single JSON in the Request Body, just like
+     // the CreateRecord method.
      //		"schema" is the static schema (table and columns) you are updating
     public function updateAllRecord() {
-       // That requires the Schema (param property)
-       // and ID ('payload' param property)
-       // and Data (RequestBody)
-       // This should return the ID of the updated table row
-       
+        // That requires the Schema (param property)
+        // and ID ('payload' param property)
+        // and Data (RequestBody)
+        // This should return the ID of the updated table row
+		       
+        // Connect to the database as a user that has the UPDATE and SELECT priviledges
+        DBConfig::write('db.user', 'captain_update');
+    	DBConfig::write('db.password', 'captain');
       	$this->connectDB();
        
         $up = new UpdateAllRecord($this);
@@ -340,9 +366,6 @@ class APIObject {
        	$up->setIDfromPayload($this->pkey);
        	$up->setSetClause($this->RequestBody);
        	$this->ResponseBody = $up->dBUpdate(trim($this->getBody()));
-       
-    		//echo "Your payload was: " .$this->payload;
-    		//echo "You schema was: " .$this->getSchema();
        
        	$this->disconnectDB();
     }
@@ -361,7 +384,11 @@ class APIObject {
     //   functions; getDog(), getCustomer(), getDelegate(), etc
     public function getRecord() {
 
-//DBConfig::write('db.password', 'signature');
+		// Call this database function as a specific user
+		// This user should only have the SELECT priviledge
+		// Because if there is a bug in this code, the database is still better protected
+    	DBConfig::write('db.user', 'captain_read');
+    	DBConfig::write('db.password', 'captain');
     	$this->connectDB();
 
     	$cc = new GetRecord($this);
@@ -391,7 +418,8 @@ class APIObject {
     }   
     
      public function getRecordInnerJoin() {
-    	
+    	DBConfig::write('db.user', 'captain_read');
+    	DBConfig::write('db.password', 'captain');
     	$this->connectDB();
     	$rec = new GetRecordInnerJoin($this);
 		$this->ResponseBody = $rec->dBQuery(trim($this->getBody()));

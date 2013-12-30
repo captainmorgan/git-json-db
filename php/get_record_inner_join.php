@@ -1,6 +1,9 @@
 <?php
 /*
 
+	GetRecordInnerJoin is a more-complex version of GetRecord designed for SQL queries
+	using an Inner Join.  An Inner Join is the intersection of two tables.
+	
 	The INNER JOIN keyword selects all rows from both tables as long as there is a match between the columns in both tables.
 	
 	Syntax:
@@ -38,6 +41,8 @@
 	{"table": "customer", "fields": ["first_name"], "where": {"id":"1"}, "order": ["dog_name"]}
 	{"table": "customer", "join": "dog", "fields": ["first_name", "dog_name", "last_name", "dog.id"], "where": {"owner_id":"1"}}
 	{"table": "customer", "join": "dog", "fields": ["first_name", "dog_name", "last_name", "dog.id"], "where": {"owner_id":"1"}, "on":{"customer":"id", "dog":"owner_id"}}
+	{"table": "customer", "join": "dog", "fields": ["id", "first_name", "last_name", "email"], "where": {"email":"christopher.t.morgan@gmail.com"}, "on":{"customer":"id", "dog":"owner_id"}}
+	{"table": "customer", "join": "dog", "fields": ["first_name", "last_name", "email", "dog.id"], "where": {"email":"dandiego@gmail.com"}, "on":{"customer":"id", "dog":"owner_id"}}
 	
 	The JSON String containing the results is returned and also stored as $this->record
 	
@@ -46,11 +51,6 @@
 
 class GetRecordInnerJoin extends GetRecord {
 
-	// JSON String-formatted input parameters
-	//public $schemaJSON;
-	//private $dataJSON;
-	
-	// Convert the JSONs to Associative Arrays
 	protected $dataArr;
 
 	protected $sTable;
@@ -58,10 +58,8 @@ class GetRecordInnerJoin extends GetRecord {
 	protected $aColumns;
 	protected $sWheres;
 	protected $sWheresClause;
-	
 	protected $sOn;
 	protected $sOnClause;	
-	
 	protected $sOrder;
 	protected $sOrderClause;
 	protected $sRangeStart;
@@ -82,9 +80,6 @@ class GetRecordInnerJoin extends GetRecord {
 		$this->sRangeStart = "0";
 
 		$this->parent_object = $object;
-		//echo "payload: ".$this->parent_object->payload;
-		//echo "CONN ".$this->parent_object->conn;
-
 	}
 
 	// Function is called by dBQuery(POST Reponse Body)
@@ -95,7 +90,6 @@ class GetRecordInnerJoin extends GetRecord {
 	//  were not in the JSON
 	// I probably should have named this function, 'buildSQLfromJSON' or something like that
    	protected function setQueryParamsFromData($s) {
-   
    
    		$this->dataArr = (json_decode($s, true));
    		
@@ -120,9 +114,10 @@ class GetRecordInnerJoin extends GetRecord {
    				return false;
    			}
    			
+   			// Set the "left" table
    			$this->sTable = mysql_real_escape_string($this->dataArr['table']);
    			
-   			//Set the 'joined' table
+   			//Set the "right", the "joined" table
    			$this->sJoinTable = mysql_real_escape_string($this->dataArr['join']);
    			
    		}
@@ -205,7 +200,6 @@ class GetRecordInnerJoin extends GetRecord {
 			}
 			$this->setLimitClause();
 		}			
-		
 		return true;
 	}
 
@@ -215,23 +209,19 @@ class GetRecordInnerJoin extends GetRecord {
 		$this->sWheresClause = null;
 		$i=1;		
 		foreach ($this->sWheres as $key => $value) {
-			//$sql->bindValue($name, $value, PDO::PARAM_STR);
-			//print($key." = '".$value."'");
 			// By using 'LIKE' instead of '=', you can use wildcards like '%'
+			// What we are building here will be parsed by PDO
 			$this->sWheresClause .= $key." = :".$key."";
 			if ((count($this->sWheres) > 1) && ($i++ != count($this->sWheres))) {
-				//print(" and ");
 				$this->sWheresClause .= " and ";
 			}
-			// Use this instead? ArrayIterator::valid
 		}
-		//echo "Wheres Clause: ". $this->sWheresClause. " End WS";
 	}
 
 
 	// Builds the ON clause of the SQL statement
 	// The ON clause is used for the join and is in the following format:
-	// "on":{"tablea":"field", "tableb":"field"}
+	// "on":{"tableA":"field", "tableB":"field"}
 	private function setOnClause() {
 		$this->sOnClause = null;
 		$i=1;		
@@ -262,7 +252,6 @@ class GetRecordInnerJoin extends GetRecord {
 
 
 	// The "main function" of this class, returns and stores the query as a JSON String
-	// 	
 	public function dBQuery($s) {
 
 		// Check to make sure the JSON we received is valid
@@ -277,18 +266,18 @@ class GetRecordInnerJoin extends GetRecord {
 
 		try {
 
-/*
-	Syntax:
-	SELECT column_name(s)
-	FROM table1
-	INNER JOIN table2
-	ON table1.column_name=table2.column_name;
+				/*
+					Syntax:
+					SELECT column_name(s)
+					FROM table1
+					INNER JOIN table2
+					ON table1.column_name=table2.column_name;
 	
-	SELECT first_name, last_name, dog_name
-	FROM customer
-	INNER JOIN dog ON customer.id = owner_id
-	WHERE dog.owner_id='1'
-*/
+					SELECT first_name, last_name, dog_name
+					FROM customer
+					INNER JOIN dog ON customer.id = owner_id
+					WHERE dog.owner_id='1'
+				*/
 
 			$sQuery = "
 				SELECT SQL_CALC_FOUND_ROWS ".str_replace(" , ", " ", implode(", ", $this->aColumns))."
@@ -298,11 +287,6 @@ class GetRecordInnerJoin extends GetRecord {
 				$this->sOrderClause
 				$this->sLimitClause
 				";
-
-			//WHERE dog.owner_id='1'
-			// ON customer.id = dog.owner_id
-			// ON Clause: customer = :customer and dog = :dog
-			//print(" THE STATEMENT --- ".$sQuery." ---- ");
 
 				$sql = $this->parent_object->conn->prepare($sQuery);
 				// Bind the PDO variables for the WHERE clause

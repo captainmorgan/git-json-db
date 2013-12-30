@@ -18,10 +18,16 @@
     ],
     "range": "10",						<-- range of records to return
     "range_start": "5"					<-- starting record to return, such as LIMIT rs, r
-	}									<-- (optional)
+										<-- (optional)
+	"distinct":["last_name"]			<-- (Optional).  Returns only unique values for the first field
 	
 	The JSON String containing the results is returned and also stored as $this->record
 	
+	Examples:
+	{"table": "customer", "fields": ["first_name"], "where": {"id":"1"}}
+	{"table": "customer", "fields": ["first_name", "last_name", "email"], "where": {"id":"1"}}
+	{"table": "customer", "fields": ["first_name"], "where": {"id":"1"}, "order": ["dog_name"]}
+	{"table": "customer", "fields": ["first_name", "dog_name", "last_name", "dog.id"], "where": {"owner_id":"1"}}
 	
 */
 
@@ -43,6 +49,7 @@ class GetRecord extends APIObject {
 	protected $sRangeStart;
 	protected $sRange;
 	protected $sLimitClause;
+	protected $sDistinct;
 	
 	public $record;
 	
@@ -56,6 +63,7 @@ class GetRecord extends APIObject {
 		// Set default values in case the JSON doesn't have these elements
 		$this->sWheresClause = "1";
 		$this->sRangeStart = "0";
+		$this->sDistinct = null;
 
 		$this->parent_object = $object;
 		//echo "payload: ".$this->parent_object->payload;
@@ -122,7 +130,22 @@ class GetRecord extends APIObject {
    		else {
    			return false;
    		}
-
+		
+		// DISTINCT option.  Allows you to getRecords with unique values
+		// Usage: {"table": "daycare", "fields": ["id", "trainer"], "where":{"Status":"In"}, "distinct":["trainer"]}
+		// TODO: This isn't exactly finished yet.  It ignores the value in the brackets, only works on one field,
+		// and has to be the first field in the field[] list.
+		if (isset($this->dataArr['distinct'])) {
+			foreach ($this->dataArr['distinct'] as $key => $value) {
+				if (preg_match('/[^a-z_\-0-9]/i', $value)) {
+   					return false;
+				}	
+			}
+			//print("there is a distinct possibility. key: ". $key . " value: " . $value);
+			$this->sDistinct = "DISTINCT";
+			
+		}
+		
 		if (isset($this->dataArr['where'])) {
 			
 			// Prevent SQL Injection.  We allow alphanumeric and % only.
@@ -180,7 +203,7 @@ class GetRecord extends APIObject {
 			$this->sWheresClause .= $key." LIKE :".$key."";
 			if ((count($this->sWheres) > 1) && ($i++ != count($this->sWheres))) {
 				//print(" and ");
-				$this->sWheresClause .= " and ";
+				$this->sWheresClause .= " and ";    // What if we wanted OR...
 			}
 			// Use this instead? ArrayIterator::valid
 		}	
@@ -266,12 +289,22 @@ class GetRecord extends APIObject {
 		try {	
 
 			$sQuery = "
-				SELECT SQL_CALC_FOUND_ROWS `".str_replace(" , ", " ", implode("`, `", $this->aColumns))."`
+				SELECT SQL_CALC_FOUND_ROWS $this->sDistinct `".str_replace(" , ", " ", implode("`, `", $this->aColumns))."`
 				FROM $this->sTable 
 				WHERE ".$this->sWheresClause."
 				$this->sOrderClause
 				$this->sLimitClause
 				";
+/*
+heredoc
+
+ $sql = <<<SQL
+SELECT blahs 
+SQL;
+*/
+
+//propell - MVC database extendors
+//doctrine
 
 			
 			//print(" THE STATEMENT --- ".$sQuery." ---- ");
