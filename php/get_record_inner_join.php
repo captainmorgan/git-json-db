@@ -28,6 +28,7 @@
     ],
     "where": {							<-- WHERE clause, such as "WHERE last_name = 'morgan'
         "last_name": "Morgan"			<-- (optional)
+        "tableB.field" : "Value"		<-- (optional) You may designate tables in the WHERE clause
     },
     "order": [							<-- array contain valid fields to ORDER BY
         "first_name"					<-- (optional)
@@ -43,6 +44,9 @@
 	{"table": "customer", "join": "dog", "fields": ["first_name", "dog_name", "last_name", "dog.id"], "where": {"owner_id":"1"}, "on":{"customer":"id", "dog":"owner_id"}}
 	{"table": "customer", "join": "dog", "fields": ["id", "first_name", "last_name", "email"], "where": {"email":"christopher.t.morgan@gmail.com"}, "on":{"customer":"id", "dog":"owner_id"}}
 	{"table": "customer", "join": "dog", "fields": ["first_name", "last_name", "email", "dog.id"], "where": {"email":"dandiego@gmail.com"}, "on":{"customer":"id", "dog":"owner_id"}}
+	
+	{"table": "delegate", "join": "dog", "fields": ["id", "first_name", "last_name", "owner_id"], "where": {"owner_id":"123"}, "on":{"delegate":"owner_id", "dog":"owner_id"}}
+	
 	
 	The JSON String containing the results is returned and also stored as $this->record
 	
@@ -100,7 +104,7 @@ class GetRecordInnerJoin extends GetRecord {
    		}
 
 		// We need a table name, exit if we didn't get one
-		// *** This is vulnerable to SQL Injection
+		// *** TODO: This is vulnerable to SQL Injection
 		// Test Case: {"table": "dog;","fields": ["dog_name","dog_notes","owner_id"],"where": {"dog_name": "ele", "id": "1"}}
 		// Also {"table": "dog","fields": ["dog_name","dog_notes","owner_id` from dog;"],"where": {"dog_name": "ele", "id": "1"}}
 		if (isset($this->dataArr['table'])) {
@@ -211,11 +215,30 @@ class GetRecordInnerJoin extends GetRecord {
 		foreach ($this->sWheres as $key => $value) {
 			// By using 'LIKE' instead of '=', you can use wildcards like '%'
 			// What we are building here will be parsed by PDO
-			$this->sWheresClause .= $key." = :".$key."";
+			
+			// start test
+			//$goodUrl = str_replace('?/', '?', $badUrl);
+			
+			if (strpos($key,'.') !== false) {
+   				 //print(" **** TRUE no PDO **** ");
+   				 //print($value);
+   				 $this->sWheresClause .= $key." = ". $value;
+			}
+			else {
+				//print(" **** FASLSE use PDO **** ");
+				$this->sWheresClause .= $key." = :".$key."";
+			}
+			
+			// end test
+			
+			//$this->sWheresClause .= $key." = :".$key."";
+			//$this->sWheresClause .= $key." = 'Mike Dog 1'"; // Works
+			//$this->sWheresClause .= $key." = ". $value;
 			if ((count($this->sWheres) > 1) && ($i++ != count($this->sWheres))) {
 				$this->sWheresClause .= " and ";
 			}
 		}
+		//print(" Where Clause: " . $this->sWheresClause . " ");
 	}
 
 
@@ -277,7 +300,15 @@ class GetRecordInnerJoin extends GetRecord {
 					FROM customer
 					INNER JOIN dog ON customer.id = owner_id
 					WHERE dog.owner_id='1'
+					
+					Statement to find siblings, in this case Delegates of a Dog
+					select d.first_name, d.last_name from delegate d join dog g on d.owner_id = g.owner_id where g.id = '136'
+					 or
+					select first_name, last_name from delegate join dog on delegate.owner_id = dog.owner_id where dog.id = '136'
+					
 				*/
+
+//print(" Where STATEMENT --- ".$this->sWheresClause." ---- ");
 
 			$sQuery = "
 				SELECT SQL_CALC_FOUND_ROWS ".str_replace(" , ", " ", implode(", ", $this->aColumns))."
@@ -288,14 +319,19 @@ class GetRecordInnerJoin extends GetRecord {
 				$this->sLimitClause
 				";
 
+//print(" THE STATEMENT --- ".$sQuery." ---- ");
+
 				$sql = $this->parent_object->conn->prepare($sQuery);
 				// Bind the PDO variables for the WHERE clause
 				if (isset($this->dataArr['where'])) {
 					foreach ($this->sWheres as $key => $value) {
+						//print(" -w- key: " . $key . " value: " . $value . " ");
 						$name = ':'.$key;
+						//$name = ':136';
+						//print(" -w- name: " . $name . " ");
 						$sql->bindValue($name, $value, PDO::PARAM_STR);
 					}
-				}
+				} 
 				if (isset($this->dataArr['range'])) {
 					$sql->bindValue(':range', (int)$this->sRange, PDO::PARAM_INT);
 					$sql->bindValue(':range_start', (int)$this->sRangeStart, PDO::PARAM_INT);

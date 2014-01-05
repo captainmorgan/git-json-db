@@ -115,6 +115,10 @@ if (isset($_REQUEST['method'])) {
         case 'updateAllRecord':
         	$object->updateAllRecord();
         	break;
+        	
+        case 'getDelegatesForDog':
+        	$object->getDelegatesForDog();
+        	break;
         default:
         	echo "No such method";
 	}

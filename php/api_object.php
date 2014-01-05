@@ -417,6 +417,13 @@ class APIObject {
 		echo $cc->count;
     }   
     
+    // Function to return the equivalent of a GetRecord on two tables, using a left inner join and 'on' clause
+    // Two tables is a current limitation of the API
+    // TODO: This method is buggy and may be vulneratble to SQL Injection
+    // Usage Instructions:
+    // URL/Endpoint: api.php?method=getRecordInnerJoin
+    // Request Body: {"table": "delegate", "join": "dog", "fields": ["first_name", "last_name", "delegate.id"], "where": {"dog.id":"136"}, "on":{"delegate":"owner_id", "dog":"owner_id"}}
+    // Result: [{"first_name":"MDelegate","last_name":"ZDelegate","id":27},{"first_name":"MDelegate2","last_name":"ZDelegate2","id":28}]
      public function getRecordInnerJoin() {
     	DBConfig::write('db.user', 'captain_read');
     	DBConfig::write('db.password', 'captain');
@@ -430,7 +437,7 @@ class APIObject {
     
     // Function to return a query of the Dog table.  This is a front-end to the GetRecord method
     // Usage Instructions:
-    // URL/Endpoint: api.php/method=getDog
+    // URL/Endpoint: api.php?method=getDog
     // Request Body: JSON Object, such as: {"table": "dog","fields": ["dog_name","dog_notes","owner_id"],"where": {"dog_name": "ele", "id": "1"}}
 	// The table specificed in the Request Body JSON Object must be "dog", or there is an error.
 	// Returns an Array of JSON Objects, such as: [{"dog_name":"ele","dog_notes":"Nothing NEW","owner_id":"3"}]
@@ -512,7 +519,29 @@ class APIObject {
 		echo "{\"term\":\"".$this->payload."\",\"results\":". $cc->record ."}";
 		//return "{\"term\":\"sample\",\"results\":". $cc->record .", \"more\": \"false\"}";
 	}
-	
+
+	// Public function to return the list of Delegates for a particular Dog
+	// Delegates are technically children elements of a Customer record
+	// This function uses the GetRecordInnerJoin method to join on the 'owner_id' field common to both the Dog and Delegate tables
+	// Thanks to Mike Zelnik (jmzelnik -at- gmail.com) for cracking the necessary SQL syntax
+	// Usage:
+	// URL/Endpoint: api.php?method=getDelegatesForDog&payload=133
+	//		where '133' is the ID of the dog
+	// Results: [{"id":25,"first_name":"David","last_name":"Morgan"}]
+	public function getDelegatesForDog() {
+    	if ((isset($this->Request['payload'])) && (is_numeric($this->Request['payload']))) {
+    		$this->connectDB();
+			$cc = new GetRecordInnerJoin($this);
+			//echo $this->payload;
+			$this->ResponseBody = $cc->dBQuery(trim("{\"table\": \"delegate\", \"join\": \"dog\", \"fields\": [\"delegate.id\", \"first_name\", \"last_name\"], \"where\": {\"dog.id\":\"" . $this->payload . "\"}, \"on\":{\"delegate\":\"owner_id\", \"dog\":\"owner_id\"}}"));
+			echo $this->ResponseBody;
+			$this->disconnectDB();
+		}
+		else {
+			echo "Error.  Must provide a Dog ID in the payload.";
+		}
+	} // End function getDelegatesForDog
+
 	
 	// Method to return the Veterinarians that are in the database
 	public function getVets() {
