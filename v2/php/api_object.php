@@ -8,6 +8,22 @@ You can use this API to perform standard CRUD (Create, Retreive, Update and Dele
 This API will also interact with the database using various users, each having been granted
 lease priviledge for the requested function.  
 
+June 21, 2014:
+- Currently we're working on removing all the but the core methods from this class and migrating
+  application-specific methods to an extension class.  What does that mean?  Well, createRecord, updateRecord, getRecord, etc
+  are application agnostic, but methods like getCustomerByEmail is specific to Fetch (the application used to track
+  dog daycare).  Someday, we might want to use the core functionality here (e.g. the ability to update a database using
+  a JSON-based web services call) in a completely new application.  If/when that day happens, we want this class to
+  be cleaned out and not include elements of Fetch.
+
+TODO:
+- Why does CreateRecord need the public versions of dBInsert, setDataJSONPublic, setSchemaJSONPublic, etc?
+- Rename UpdateRecord2, potentially remove UpdateRecord
+- Protect the remaining Public functions
+- Remove the schemaLabels
+- In Fetch, single quotes (') are still a problem; double quotes seem to be OK
+- CreateRecord is calling getSchema......this won't work!
+
 
 Author: Christopher Morgan
 Contact: christopher.t.morgan -at- gmail
@@ -18,7 +34,6 @@ Copyright 2013
 // Include Major Child Classes
 require_once('create_record.php');
 require_once('update_record.php');
-require_once('update_record2.php');
 require_once('update_all_record.php');
 require_once('get_record.php');
 require_once('get_record_count.php');
@@ -49,7 +64,8 @@ class APIObject {
 	// These schemas are important since when INSERTing, the data and schema must match
 	// But we don't want to expose the schema of each table for security reasons.
 	// TODO the DescSchema class should make these obsolete
-	
+
+
 	protected $schemaLabel_customertest = "{\"table\":\"customertest\",\"fields\":[\"first_name\",\"last_name\",\"phone\",\"dob\"]}";
 
     protected $schemaLabel_customer = "{
@@ -88,13 +104,13 @@ class APIObject {
 	
 	/* protected $schemaLabel_dog = "{\"table\":\"dog\", \"fields\":[\"dog_name\", \"breed\", \"dog_notes\",\"owner_id\"]}"; */
     
-    protected $schemaLabel_dog = "{\"table\":\"dog\", \"fields\":[\"dog_name\", \"breed\", \"behaviors\", \"allergies\", \"dog_birthday\", \"dog_dhp\", \"dog_rabies\", \"dog_bordetella\", \"dog_giardia\", \"vet\", \"dog_notes\", \"gender\", \"furcolor\", \"pawwidth\", \"neckgirth\", \"waistgirth\", \"height\", \"license\", \"microchip\", \"owner_id\"]}";
+//    protected $schemaLabel_dog = "{\"table\":\"dog\", \"fields\":[\"dog_name\", \"breed\", \"behaviors\", \"allergies\", \"dog_birthday\", \"dog_dhp\", \"dog_rabies\", \"dog_bordetella\", \"dog_giardia\", \"vet\", \"dog_notes\", \"gender\", \"furcolor\", \"pawwidth\", \"neckgirth\", \"waistgirth\", \"height\", \"license\", \"microchip\", \"owner_id\"]}";
     
-    protected $schemaLabel_delegate = "{\"table\":\"delegate\", \"fields\":[\"first_name\",\"last_name\",\"phone\",\"email\",\"owner_id\"]}";
+//    protected $schemaLabel_delegate = "{\"table\":\"delegate\", \"fields\":[\"first_name\",\"last_name\",\"phone\",\"email\",\"owner_id\"]}";
     
-    protected $schemaLabel_question = "{\"table\": \"question\", \"fields\": [\"text\", \"type\", \"options\", \"default\", \"guidelines\"]}";
+//    protected $schemaLabel_question = "{\"table\": \"question\", \"fields\": [\"text\", \"type\", \"options\", \"default\", \"guidelines\"]}";
 
-    protected $schemaLabel_simpletest = "{\"table\": \"simpletest\", \"fields\": [\"id\", \"one\", \"two\"]}";
+//    protected $schemaLabel_simpletest = "{\"table\": \"simpletest\", \"fields\": [\"id\", \"one\", \"two\"]}";
     
     protected $schemaLabel_daycare = "{\"table\": \"daycare\", \"fields\": [\"tag\", \"dog_name\", \"dog_id\", \"customer_last_name\", \"status\", \"trainer\", \"location\", \"sublocation\", \"time_check_in\", \"time_check_out\"]}";    
     
@@ -138,7 +154,7 @@ class APIObject {
 			$db->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 			$db->conn->exec('SET NAMES utf8');
 			$this->conn = $db->conn;
-			PC::debug("Successfully connected to database.");
+			//PC::debug("Successfully connected to database.");
 		} catch(PDOException $e) {
    			echo 'ERROR: ' . $e->getMessage();
    			//debug("Unsuccessful in connecting to database...");
@@ -151,10 +167,10 @@ class APIObject {
     
     	try {
     		$this->conn = null;
-    		PC::debug("Successfully disconnected from database.");
+    		//PC::debug("Successfully disconnected from database.");
     	} catch(PDOException $e) {
    			echo 'ERROR: ' . $e->getMessage();
-   			PC::debug("Unsuccessful in disconnecting to database...");
+   			//PC::debug("Unsuccessful in disconnecting to database...");
    			exit();
 		}
     }
@@ -186,15 +202,13 @@ class APIObject {
     public function echoSchema() {
         //return $this->schema;
         echo "Here is your schema: \n";
-        
-		//echo 
-
     }
         
     
     // Returns a JSON String of the schema, as the API expects
     // This looks at the Schema Library in this class attribute variables
     // TODO: This should be re-written to take advantage of the DescSchema class
+    // TODO: Is this obsolete?
 
     private function getSchema() {
         switch ($this->schema) {
@@ -229,46 +243,6 @@ class APIObject {
 		}
     }    
 
-/*
-	// Experimental
-    private function getSchema() {
-    
-        $dsc = new DescSchema($this);
-    	$dsc->setTable($this->schema);
- 		//$cust->setSchemaJSON($dsc->getDescSilent());	
-    
-        switch ($this->schema) {
-
-  		case "customer":
-  			return trim($dsc->getDescSilent());
-  			break;      	
-    	case "customertest":
-        	return trim($dsc->getDescSilent());
-        	break;
-    	case "dogtest":
-        	return trim($dsc->getDescSilent());
-       	 	break;
-    	case "dog":
-        	return trim($dsc->getDescSilent());
-       	 	break;
-    	case "delegate":
-        	return return trim($dsc->getDescSilent());
-       	 	break;      
-    	case "daycare":
-        	return return trim($dsc->getDescSilent());
-       	 	break; 
-       	 case "question":
-        	return return trim($dsc->getDescSilent());
-       	 	break;    	 	       	 	
-    	case "test":
-        	echo "This is a test";
-        	break;
-        case "simpletest":
-        	return return trim($dsc->getDescSilent());
-        	break;	
-		}
-    }
-*/
     
     // Create a generic record
     // This method should be private and should be called from public methods, such as createCustomer, addDog, and addDelegate
@@ -287,7 +261,8 @@ class APIObject {
        $rec = new CreateRecord($this); 
     
         $rec->setRequestBody($this->RequestBody);
-       	$rec->setSchemaJSON($this->getSchema());
+       	//$rec->setSchemaJSON($this->getSchema());  // TODO update this!
+       	$rec->setSchemaJSON($this->descSchema($this->schema, 0));
        	$rec->setDataJSON($this->getBody());
        	$rec->dBInsert($this->Request);
        	echo $rec->createdID;
@@ -307,7 +282,7 @@ class APIObject {
     // But the goal should be to be call this internally within the class, not via the web service.
     // Similarly to the self::getCustomerIdByEmail
     // Response Body: {"table":"dog","fields":["dog_name","breed","behaviors","allergies","dog_birthday","dog_dhp","dog_parvo","dog_rabies","dog_bordetella","dog_giardia","vet","dog_notes","gender","furcolor","pawwidth","neckgirth","waistgirth","height","license","microchip","owner_id"]}
-    public function descSchema($table, $echo) {
+    protected function descSchema($table, $echo) {
     	$dsc = new DescSchema($this);
     	$dsc->setTable($table);
     	//$dsc->getDesc();  // echos the value
@@ -315,19 +290,6 @@ class APIObject {
     	// Can the echo/silent feature be replaced with how I did the getSchemaExample?
     }
     
-/*    
-    public function dsTest() {
-    	PC::debug("dsTest");
-    	$ds = new DescSchema($this);
-    	$ds->setTable("dog");
-    	$ds->getDesc();
-    	
-    	//$dsc = new DescSchema($this);
-    	//$dsc->setTable("dog");
-    	//$dsc->getDesc();
-    	//$dsc->getExample();	
-    }
-*/
     
     // Experimental function
     // Function to the return a template JSON 
@@ -338,42 +300,29 @@ class APIObject {
     	echo $dsc->getExample();
     }
  
-     // Update a generic record
-    protected function updateRecord() {
-       // That requires the Schema (param property)
-       // and Data (RequestBody)
-       // This should return the ID of the new table row
-        $up = new UpdateRecord($this->Request);
-       	
-       	// Test
-       	$up->setSchemaJSON($this->getSchema());
-       	
-       	$this->ResponseBody = $up->dBUpdate(trim($this->getBody()));       
-       
-       // TEST Data Format
-       // {"table": "dog",  "set":{"dog_notes": "Nothing NEW"}, "where": {"dog_name": "ele", "id": "1"}}
-    }
 
 
-     // Update a generic record
-     // Now with better authentication
-     // Usage:
-     //		api.php?method=updateRecord2&schema=daycare
+     // Update an existing record in the database
+     // Sometimes I think this method should be the named, "UpdateAll"
+     // Usage Example:
+     //		api.php?method=updateRecord&schema=daycare
      //			where "schema" is the table you want to update
      //		Payload: {"table":"daycare","set":{"trainer":"Auto3"},"where":{"id":"1"}}
-    public function updateRecord2() {
+     //
+     //		Response Body: The number of rows just updated
+    protected function updateRecord() {
 
     	DBConfig::write('db.user', 'captain_update');
     	DBConfig::write('db.password', '11sumrall11');  
 		$this->connectDB();
 
-        $up = new UpdateRecord2($this);
-       	$up->setSchemaJSON($this->getSchema());
+        $up = new UpdateRecord($this);
+       	//$up->setSchemaJSON($this->getSchema());  // See this should not call getSchema because that looks for the labels.  It should look for the describe.
+       	$up->setSchemaJSON($this->descSchema($this->schema, 0));
        	
        	$this->ResponseBody = $up->dBUpdate(trim($this->getBody()));
-       	
        	$this->disconnectDB();       	
-    }
+    } // End function updateRecord()
 
     
      // The UpdateAll method; a different way to update records
@@ -383,7 +332,7 @@ class APIObject {
      //	UpdateAll is relevant because it uses a single JSON in the Request Body, just like
      // the CreateRecord method.
      //		"schema" is the static schema (table and columns) you are updating
-    public function updateAllRecord() {
+    protected function updateAllRecord() {
         // That requires the Schema (param property)
         // and ID ('payload' param property)
         // and Data (RequestBody)
@@ -393,11 +342,12 @@ class APIObject {
         DBConfig::write('db.user', 'captain_update');
     	DBConfig::write('db.password', '11sumrall11');
       	$this->connectDB();
-       
         $up = new UpdateAllRecord($this);
         $up->setRequestBody($this->RequestBody);
-       	$up->setTableFromSchema($this->getSchema());
-       	$up->setFieldsFromSchema($this->getSchema());
+       	//$up->setTableFromSchema($this->getSchema());
+       	$up->setTableFromSchema($this->descSchema($this->schema, 0));
+       	//$up->setFieldsFromSchema($this->getSchema());
+       	$up->setFieldsFromSchema($this->descSchema($this->schema, 0));
        	$up->setDataFromJSON($this->RequestBody);
        	//$up->setIDfromPayload($this->payload);
        	$up->setIDfromPayload($this->pkey);
@@ -433,7 +383,7 @@ class APIObject {
 
 		echo $this->ResponseBody;
 		$this->disconnectDB();
-    }
+    } // End function getRecord()
  
  
  	// Function to return a count of the records.  An extension class of GetRecord.
@@ -449,7 +399,7 @@ class APIObject {
     // Alternative Request Body: {"table": "dog", "fields": ["*"]}
     // Output: 112
  	// Accepts the same inputs as GetRecord INCLUDING a field element!
-     public function getRecordCount() {
+     protected function getRecordCount() {
     	
     	DBConfig::write('db.user', 'captain_read');
     	DBConfig::write('db.password', '11sumrall11');
@@ -470,7 +420,7 @@ class APIObject {
     // URL/Endpoint: api.php?method=getRecordInnerJoin
     // Request Body: {"table": "delegate", "join": "dog", "fields": ["first_name", "last_name", "delegate.id"], "where": {"dog.id":"136"}, "on":{"delegate":"owner_id", "dog":"owner_id"}}
     // Result: [{"first_name":"MDelegate","last_name":"ZDelegate","id":27},{"first_name":"MDelegate2","last_name":"ZDelegate2","id":28}]
-     public function getRecordInnerJoin() {
+     protected function getRecordInnerJoin() {
     	DBConfig::write('db.user', 'captain_read');
     	DBConfig::write('db.password', '11sumrall11');
     	$this->connectDB();
@@ -480,305 +430,14 @@ class APIObject {
 		$this->disconnectDB();
     }   
 
-    
-    // Function to return a query of the Dog table.  This is a front-end to the GetRecord method
-    // Usage Instructions:
-    // URL/Endpoint: api.php?method=getDog
-    // Request Body: JSON Object, such as: {"table": "dog","fields": ["dog_name","dog_notes","owner_id"],"where": {"dog_name": "ele", "id": "1"}}
-	// The table specificed in the Request Body JSON Object must be "dog", or there is an error.
-	// Returns an Array of JSON Objects, such as: [{"dog_name":"ele","dog_notes":"Nothing NEW","owner_id":"3"}]
-	// Returns an empty array if there are no results, such as: []
-	// Returns an Error Message if the Dog table is not specified, or if the JSON Object is malformed.
-//    public function getDog() {
-//    	
-//    	$dataArr = json_decode(trim($this->getBody()), true);
-//    	
-//    	// Check to see if we're dealing with the 'dog' table
-//    	if ($dataArr['table'] === "dog") {
-//    		$this->getRecord();
-//    	}
-
-/*
-    		// Test Cases
-    		//$test2 = "{\"table\": \"dog\",\"fields\": [\"dog_name\",\"dog_notes\",\"owner_id\"],\"where\": {\"dog_name\": \"ele\", \"id\": \"1\"}}"
-    		//$cc->setSchemaJSON(trim("{\"table\": \"dog\",\"fields\": [\"dog_name\",\"dog_notes\",\"owner_id\"]}"));
-    		//$test2 = "{\"table\": \"dog\",\"fields\": [\"dog_name\",\"dog_notes\",\"owner_id\"],\"where\": {\"dog_name\": \"ele\"}}";
-    		//$cc->setSchemaJSON(trim("{\"table\": \"customer\",\"fields\": [\"id\",\"first_name\",\"last_name\"],\"where\": {\"first_name\": \"Christopher\", \"id\": \"100\"}}"));
-    		//test2 = "{\"table\": \"customer\",\"fields\": [\"first_name\",\"dob\",\"last_name\"],\"where\": {\"dob\": \"2013-07-09\"}}"
-    		// *** Order 
-    		//$cc->setSchemaJSON(trim("{\"table\": \"customer\",\"fields\": [\"first_name\",\"id\",\"last_name\"], \"order\": [\"last_name\", \"first_name\"]}"));
-    		//$cc->setSchemaJSON(trim("{\"table\": \"customer\",\"fields\": [\"id\",\"first_name\",\"last_name\"], \"where\": {\"last_name\": \"Morgan\"}, \"order\": [\"first_name\"]}"));
-    		// *** Customer Order no Where
-    		//$test2 = "{\"table\": \"customer\",\"fields\": [\"id\",\"first_name\",\"last_name\"], \"order\": [\"first_name\"]}";
-    		// *** Customer multi Order no Where
-    		//$test2 = "{\"table\": \"customer\",\"fields\": [\"id\",\"first_name\",\"last_name\"], \"order\": [\"last_name\", \"first_name\"]}";
-    		// *** Valide Range and RangeStart
-    		//$cc->setSchemaJSON(trim("{\"table\": \"customer\",\"fields\": [\"first_name\",\"id\",\"last_name\"], \"range\": \"3\", \"range_start\": \"2\"}"));
-    		// *** RangeStart, but not Range -> Should ignore it
-    		//$cc->setSchemaJSON(trim("{\"table\": \"customer\",\"fields\": [\"first_name\",\"id\",\"last_name\"], \"range_start\": \"2\"}"));
-    		// *** Just Range, should assume RangeStart = 0;
-    		//$test2 = "{\"table\": \"customer\",\"fields\": [\"first_name\",\"id\",\"last_name\"], \"range\": \"3\"}";
-			// *** Customer Where, Order and Range
-    		//$cc->setSchemaJSON(trim("{\"table\": \"customer\",\"fields\": [\"id\",\"first_name\",\"last_name\"], \"where\": {\"last_name\": \"Morgan\"}, \"order\": [\"first_name\"], \"range\": \"3\"}"));
-    		// *** Not valid JSON
-    		//$cc->setSchemaJSON(trim("{\"table\": \"dog\",\"fields\": [\"dog_name\",\"dog_notes\",\"owner_id\""));
-		
-			//$test2 = "{\"table\": \"dog\",\"fields\": [\"dog_name\",\"dog_notes\",\"owner_id\"],\"where\": {\"dog_name\": \"ele\", \"id\": \"1\"}}";
-*/
-
-//		else {
-//			echo "Error.  Not a dog";
-//		}
-//    } // End getDog
-    
-
-	// Test function
-	// Ussage: method=getCustomerById&payload=1
-	public function getCustomerById() {	
-		$this->connectDB();
-    	$cc = new GetRecord($this);
-		$this->ResponseBody = $cc->dBQuery(trim("{\"table\": \"customer\",\"fields\": [\"email\", \"first_name\"], \"where\": {\"id\":\"" . $this->payload . "\"}}"));
-		echo $this->ResponseBody;    	
-		$this->disconnectDB();
-	} // End getCustomerById
 
 
-/*
-	// Function returns the Customer ID, as an integer, given an actual email address
-	// Usage Example:
-	// URL/Endpoint: api.php?method=getCustomerIdByEmail&payload=christopher.t.morgan@gmail.com
-	// Response Body: 1 and
-	// Returns: 1
-	// Function returns 0 if the email address provided does not match a Customer record.
-	// Alternative Usage:
-	// You may call this function from within another function of the  APIObject class using
-	// self::getCustomerIdByEmail("email@domain.com", echo);
-	// Where "echo" is boolean.  If echo == true, the ReponseBody will contain the Owner Id
-	// If echo is false, it is returned silently
-	// TODO: Protect the incoming Payload with a Regex function
-	public function getCustomerIdByEmail($emailFromPayload, $echo) {
-	
-		$this->connectDB();
-    	$cc = new GetRecord($this);
-		//$this->ResponseBody = $cc->dBQuery(trim("{\"table\": \"customer\",\"fields\": [\"id\"], \"where\": {\"email\":\"" . $this->payload . "\"}}"));
-		$this->ResponseBody = $cc->dBQuery(trim("{\"table\": \"customer\",\"fields\": [\"id\"], \"where\": {\"email\":\"" . $emailFromPayload . "\"}}"));
-		//echo $this->ResponseBody;
-		$this->disconnectDB();
-				
-		$jsonOfCust = json_decode( $this->ResponseBody, true );
-		if (is_null($jsonOfCust['0']['id']))
-		{
-			echo "0";
-			return 0;
-		}
-		else
-		{
-			if ($echo)
-			{
-				echo $jsonOfCust['0']['id'];
-			}
-			return $jsonOfCust['0']['id'];
-		}
-
-	} // End getCustomerById
-*/
-
-	// Function to return a list of dog breeds.  This is a front-end to the GetRecords method.
-	// Dog Breeds are stored in the 'breed' table
-	// Accepts a search parameter as the 'payload'
-	// If payload is not provided, it returns all the breeds.
-	// Example: 'api.php?method=getAllDogBreeds' will return everything
-	//  or 'api.php?method=getAllDogBreeds&payload=Belgian Malinois' will return what matches the payload string
-	// Output is a JSON String in the format:
-	//
-	// { "term": "belgian",				<-- Payload
-	//	"results": [
-	//				{"id":"21","text":"Belgian Malinois"},{"id":"22","text":"Belgian Sheepdog"}   <-- Results
-	//				]
-	// }
-	//
-	// Request Body is ignored
-	//
-	public function getAllDogBreeds() {
-    	// This would allow method-specific parameters
-    	// This is not yet implemented
-     	if (isset($this->Request['range'])) {
-			$range = $this->Request['range'];
-			echo $range;
-		}
-		
-    	$this->connectDB();
-		$cc = new GetRecord($this);
-		//$cc->dBQuery(trim("{\"table\": \"breed\",\"fields\": [\"id\", \"text\"], \"where\": {\"text\": \"%".$this->payload."%\"}}", true));
-									// What does the "true" parameter do?
-		$cc->dBQuery(trim("{\"table\": \"breed\",\"fields\": [\"id\", \"text\"], \"where\": {\"text\": \"%".$this->payload."%\"}}"));
-		// Outputs as a single JSON string {}, not an array [{}]
-		echo "{\"term\":\"".$this->payload."\",\"results\":". $cc->record ."}";
-		//return "{\"term\":\"sample\",\"results\":". $cc->record .", \"more\": \"false\"}";
-	}
-
-	// Public function to return the list of Delegates for a particular Dog
-	// Delegates are technically children elements of a Customer record
-	// This function uses the GetRecordInnerJoin method to join on the 'owner_id' field common to both the Dog and Delegate tables
-	// Thanks to Mike Zelnik (jmzelnik -at- gmail.com) for cracking the necessary SQL syntax
-	// Usage:
-	// URL/Endpoint: api.php?method=getDelegatesForDog&payload=133
-	//		where '133' is the ID of the dog
-	// Results: [{"id":25,"first_name":"David","last_name":"Morgan"}]
-	public function getDelegatesForDog() {
-    	if ((isset($this->Request['payload'])) && (is_numeric($this->Request['payload']))) {
-    		$this->connectDB();
-			$cc = new GetRecordInnerJoin($this);
-			//echo $this->payload;
-			$this->ResponseBody = $cc->dBQuery(trim("{\"table\": \"delegate\", \"join\": \"dog\", \"fields\": [\"delegate.id\", \"first_name\", \"last_name\"], \"where\": {\"dog.id\":\"" . $this->payload . "\"}, \"on\":{\"delegate\":\"owner_id\", \"dog\":\"owner_id\"}}"));
-			echo $this->ResponseBody;
-			$this->disconnectDB();
-		}
-		else {
-			echo "Error.  Must provide a Dog ID in the payload.";
-		}
-	} // End function getDelegatesForDog
-	
-	
-	public function addDog() {
-	
-	       //echo $this->RequestBody;
-	       //$dogData = $this->RequestBody;
-	       //echo $dogData;
-   
-	//{"dog_name":"api", "breed":"", "behaviors":"", "allergies":"", "dog_birthday":"", "dog_dhp":"", "dog_rabies":"", "dog_bordetella":"", "dog_giardia":"", "vet":"", "dog_notes":"", "gender":"", "furcolor":"", "pawwidth":"", "neckgirth":"", "waistgirth":"", "height":"", "license":"", "microchip":"", "owner_id":"1"}
-        $this->connectDB();
-        $dog = new CreateRecord($this);
-
-        $dog->setRequestBody($this->RequestBody);
-       	$dog->setSchemaJSON($this->schemaLabel_dog);
-       	$dog->setDataJSON($this->getBody());
-       	//$dog->setDataJSON("{\"dog_name\":\"api\", \"breed\":\"\", \"behaviors\":\"\", \"allergies\":\"\", \"dog_birthday\":\"\", \"dog_dhp\":\"\", \"dog_rabies\":\"\", \"dog_bordetella\":\"\", \"dog_giardia\":\"\", \"vet\":\"\", \"dog_notes\":\"\", \"gender\":\"\", \"furcolor\":\"\", \"pawwidth\":\"\", \"neckgirth\":\"\", \"waistgirth\":\"\", \"height\":\"\", \"license\":\"\", \"microchip\":\"\", \"owner_id\":\"1\"}");
-       	$dog->dBInsert($this->Request);
-       	echo $dog->createdID;
-       	return $dog->createdID;	
-	
-	} // End function addDog
 
 
-	// Function to add a Dog to the database and link to an Owner, given the Owner's email address
-	// This differs from the 'addDog' method since that requires knowing the Customer/Owner's ID
-	// Customer/Owner IDs should be unique in the database.  This is validated by the form.
-	// Usage instructions:
-	// URL/Endpoint: method=addDogWithEmail
-	// Request Body: {"dog_name":"LuckySeven8", "breed":"", "behaviors":"", "allergies":"", "dog_birthday":"", "dog_dhp":"", "dog_rabies":"", "dog_bordetella":"", "dog_giardia":"", "vet":"", "dog_notes":"", "gender":"", "furcolor":"", "pawwidth":"", "neckgirth":"", "waistgirth":"", "height":"", "license":"", "microchip":"", "email":"christopher.t.morgan@gmail.com"}
-	// Response Body: 167, or ID of newly-created Dog
-	// Note: the "email" key-pair must be the last element of the JSON
-	public function addDogWithEmail() {
-       	
-       	$s = $this->getBody();
-       	$s = str_replace("email", "owner_id", $s);
-       	$sLength = strlen($s);
-       	$stringLeft = substr($s, 0, strpos($s, "owner_id")+11);
-       	$stringRight = "\"" . substr($s, -1);
-       	$sEmailLength = strlen($s) - (strpos($s, "owner_id") + 13);
-       												// email is 11 char in our example
-       	/*
-       	echo " lenth: " . $sLength;					// 322
-       	echo " pos: " . strpos($s, "owner_id");		// 298
-       	echo " last: " . strrpos($s, "\"}");		// 320
-       	*/
-
-       	$email = mb_substr($s, strpos($s, "owner_id")+11, $sEmailLength);
-       	$stringMiddle = self::getCustomerIdByEmail($email, 0);
-       	$combinedString = $stringLeft . $stringMiddle . $stringRight;
-       	//echo $combinedString;
-       	
-       	$this->connectDB();
-        $dog = new CreateRecord($this);
-        $dog->setRequestBody($this->RequestBody);
-       	$dog->setSchemaJSON($this->schemaLabel_dog);
-       	$dog->setDataJSON($combinedString);
-		$dog->dBInsert($this->Request);
-		
-       	echo $dog->createdID;
-       	return $dog->createdID;	
-       		
-	} // End function addDogWithEmail
 
 
-	// Function to create and add a Delegate.  Delegates are children elements of Customers
-	// Usage Instructions:
-	// This works by manipulating the text of the JSON Request Body before making the query
-	// URL/Endpoint: api.php?method=addDelegate
-	// Request Body: {"delegate_first_name":"","delegate_last_name":"","phone":"","delegate_email":"","owner_id_delegate":"233"}
-	// Result: Returns ID of newly-created Delegate
-	public function addDelegate() {
-	    $this->connectDB();
-        $del = new CreateRecord($this);
-        $del->setRequestBody($this->RequestBody);
-       	$del->setSchemaJSON($this->schemaLabel_delegate);
-       	$del->setDataJSON($this->getBody());
-       	$del->dBInsert($this->Request);
-       	echo $del->createdID;
-       	return $del->createdID;	
-	} // End function addDelegate
 
 
-	// Function to add Delegates and link to Customer with the Customer's email address
-	// Differs from 'addDelegate' because that requires the knowledge of the Customer ID
-	// Usage instructions: 
-	// URL/Endpoint: api.php?method=addDelegateWithEmail
-	// Request Body: {"first_name":"Mister","last_name":"Delgato","phone":"5556545","email":"delgato@gmail","owner_email":"1@1.com"}
-	// Results Body: ID of newly-created Delegate
-	public function addDelegateWithEmail() {
-       	
-       	$s = $this->getBody();
-       	$s = str_replace("owner_email", "owner_id", $s);
-       	$sLength = strlen($s);
-       	$stringLeft = substr($s, 0, strpos($s, "owner_id")+11);
-       	$stringRight = "\"" . substr($s, -1);
-       	$sEmailLength = strlen($s) - (strpos($s, "owner_id") + 13);
-       												// email is 11 char in our example
-
-       	$email = mb_substr($s, strpos($s, "owner_id")+11, $sEmailLength);
-       	$stringMiddle = self::getCustomerIdByEmail($email, 0);
-       	$combinedString = $stringLeft . $stringMiddle . $stringRight;
-       	echo $combinedString;
-       	
-       	$this->connectDB();
-        $dog = new CreateRecord($this);
-        $dog->setRequestBody($this->RequestBody);
-       	$dog->setSchemaJSON($this->schemaLabel_delegate);
-       	$dog->setDataJSON($combinedString);
-		$dog->dBInsert($this->Request);
-		
-       	echo $dog->createdID;
-       	return $dog->createdID;	
-       		
-	} // End function addDelegateWithEmail
-
-/*    
-    // checkInDog
-    public function daycareCheckInDog() {
-    	DBConfig::write('db.user', 'captain_write');
-    	DBConfig::write('db.password', '11sumrall11');    
-	    $this->connectDB();
-        $visit = new CreateRecord($this);
-        $visit->setRequestBody($this->RequestBody);
-       	$visit->setSchemaJSON($this->schemaLabel_daycare);
-       	$visit->setDataJSON($this->getBody());
-       	$visit->dBInsert($this->Request);
-       	echo $visit->createdID;
-       	return $visit->createdID;	    
-    } // End function daycareCheckInDog
-*/	
-	
-	// Method to return the Veterinarians that are in the database
-	public function getVets() {
-    	$this->connectDB();
-		$cc = new GetRecord($this);
-		$cc->dBQuery(trim("{\"table\": \"veterinarian\",\"fields\": [\"id\", \"text\"], \"where\": {\"text\": \"%".$this->payload."%\"}}"));
-		// Outputs as a single JSON string {}, not an array [{}]
-		echo "{\"term\":\"".$this->payload."\",\"results\":". $cc->record ."}";		
-	} // End function getVets
-
-	
 	// Function to build and display a list of Questions.  Uses GetRecord for the query and takes in its output.
 	// "JSON-format of a query" -> GetRecord -> JSON Array-format output -> getQuestions -> HTML output
 	// Questions are stored in the 'question' table.
@@ -826,16 +485,7 @@ class APIObject {
     }
     
     */
-    
-    
-    // createDog
-   // public function createDog(schema, jsondata) {
-       // We will instantiate a new CreateRecord Object
-       // That requires the Schema (param property)
-       // and Data (RequestBody)
-       // This also needs the Customer ID (that should be handled by the form and already be in the data
-       // 
-   // }    
+     
     
    /* 
     // Set Payload

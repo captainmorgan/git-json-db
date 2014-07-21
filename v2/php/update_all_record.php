@@ -47,7 +47,7 @@ class UpdateAllRecord extends CreateRecord {
 	}
 
 	// Set the the Table to update from the "schema" parameter
-	protected function setTableFromSchema($s) {
+	public function setTableFromSchema($s) {
    		$this->schemaArr = (json_decode($s, true));
    		$this->sTable = $this->schemaArr['table'];
    		$this->aColumns = $this->schemaArr['fields'];
@@ -55,21 +55,21 @@ class UpdateAllRecord extends CreateRecord {
 	}
 
 	// Set the the column names/fields from the hard-coded schema
-	protected function setFieldsFromSchema($s) {
+	public function setFieldsFromSchema($s) {
    		$this->schemaArr = (json_decode($s, true));
    		$this->aColumns = $this->schemaArr['fields'];
    		//print_r($this->aColumns);
 	}
    
 	// Set the data to update from the JSON in the Request Body
-	protected function setDataFromJSON($s) {
+	public function setDataFromJSON($s) {
 		$this->dataArr = (json_decode($s, true));
    		//print_r($this->dataArr);
 	}
 
 	// Set the the Primary Key ID to update
 	// This is what the payload's value is
-	protected function setIDfromPayload($s) {
+	public function setIDfromPayload($s) {
    		$this->pkeyid = $s;
    		//print_r("PK ID: ". $this->pkeyid ." ");
 	}
@@ -175,7 +175,9 @@ class UpdateAllRecord extends CreateRecord {
 						if ($key == $this->sCommonFields[$i]) {
 							$name = ':'.$key;
 							//echo "NAME: ". $name;
-							$sql->bindValue($name, $value, PDO::PARAM_STR);
+							//$sql->bindValue($name, $value, PDO::PARAM_STR);
+							// apostrophie bug
+							$sql->bindValue($name, trim(str_replace('\'', ' ', ($value))), PDO::PARAM_STR);
 						}
 						$i++;
 					}

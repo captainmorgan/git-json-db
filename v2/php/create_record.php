@@ -132,7 +132,7 @@ class CreateRecord extends APIObject {
 				INSERT INTO $this->sTable ( `".str_replace(" , ", " ", implode("`, `", $this->aColumns))."` )
 				VALUES (:".str_replace(" , ", " ", implode(", :", array_keys($this->dataArr))).")
 				";
-				PC::debug("sQuery: " . $sQuery);
+				//PC::debug("sQuery: " . $sQuery);
 // TODO: Should we escape characters here?
 /*
 			echo $sQuery;
@@ -146,10 +146,13 @@ class CreateRecord extends APIObject {
 			// Bind the PDO variables
 			foreach ($this->dataArr as $key => $value) {
 				$name = ':'.$key;
-				// Each value is escaped so that a ' will be entered as %27
-				// Not sure which is best: rawurlencode -- encodes spaces, @
-				// addslashes, 
-				$sql->bindValue($name, trim(rawurlencode($value)), PDO::PARAM_STR);
+				// We want to escape certain characters, but not others.
+				// Not sure which method is best: rawurlencode, addslashes, str_replace
+				// Specifically we want to escape the ' but not the space
+				//$sql->bindValue($name, trim(rawurlencode($value)), PDO::PARAM_STR);	// Put %20 in for spaces; not going to work
+				//$sql->bindValue($name, trim($value), PDO::PARAM_STR);					// No escaping
+				//$sql->bindValue($name, trim(str_replace('\'', '\\\'', ($value))), PDO::PARAM_STR);		// I think this works
+				$sql->bindValue($name, trim(str_replace('\'', ' ', ($value))), PDO::PARAM_STR);				// Just strips it out
 			}		
 			$sql->execute();
 			//echo $conn->lastInsertId();

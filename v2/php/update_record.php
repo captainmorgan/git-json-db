@@ -47,14 +47,18 @@ class UpdateRecord extends CreateRecord {
 	protected $sWheresClause;
 	protected $sSet;
 	protected $sCommonFields;
-	protected $sSetClause;	
+	protected $sSetClause;
 	
-	function UpdateRecord() {
+	protected $parent_object;	// Used for the the dynamic db credentials
+	
+	function UpdateRecord($object) {
 		// We are overiding the parent constructor, but we want to call it explicietly here
 		parent::__construct($this->Request);
 
 		$schemaArr = array();		
 		$dataArr = array();
+		
+		$this->parent_object = $object;
 
 		// Zero won't update any rows, this is a protection
 		$this->sWheresClause = "0";		
@@ -128,50 +132,6 @@ class UpdateRecord extends CreateRecord {
 		//echo " ### Intersect: ";
 		$this->sCommonFields = array();
 		$this->sCommonFields = (array_intersect($a, $this->aColumns));
-		//var_dump($this->sCommonFields);
-		//echo " ### ";
-		
-		//echo " ### sSet: ";
-		//var_dump($this->sSet);
-		//echo " ### ";
-
-		//echo " ### sSet Array Keys: ";
-		//var_dump(array_keys($this->sSet));
-		//echo " ### ";
-
-		//echo " ### sSet Array Values: ";
-		//var_dump(array_values($this->sSet));
-		//echo " ### ";
-
-
-		// I need to take the intersection of keys between aColumns (which comes from the schema
-		// and sSet, which comes from the data.  If a column doesn't exist, we toss it out from sSetClause
-		// The challenge is to keep the values from sSet
-	
-	/*	
-		foreach ($this->CommonFields as $key => $value ) {
-			$this->sSetClause .= $
-		
-		}
-*/
-/*
-// NEED: one = :one, two = :two
-
-		//$this->sSetClause = null;
-		$i=1;		
-		foreach ($this->sCommonFields as $key => $value) {
-		
-			$this->sSetClause .= $this->sCommonFields[$i-1]." = :".$this->sSet[$value]."";
-			//$this->sSetClause .= $key." = :".$key."";
-			//$this->sSetClause .= $this->aColumns[$i++]." = :".$key."";			// Doesn't work with fields out of order or skipped...
-			if ((count($this->sSet) > 1) && ($i++ != count($this->sSet))) {
-				$this->sSetClause .= ", ";
-			}
-			// Use this instead? ArrayIterator::valid
-			//$i++;
-		}
-
-*/
 	
 		//$this->sSetClause = null;
 		$i=1;		
@@ -194,10 +154,7 @@ class UpdateRecord extends CreateRecord {
 				//$this->sSetClause .= $this->aColumns[$i++]." = :".$key."";			// Doesn't work with fields out of order or skipped...
 				if ((count($this->sCommonFields) > 1) && ($i++ != count($this->sCommonFields))) {
 					$this->sSetClause .= ", ";
-				}	
-
-			// Use this instead? ArrayIterator::valid
-			//$i++;
+				}
 		}
 
 		//echo " --- Set Clause: ". $this->sSetClause. " --- ";
@@ -230,29 +187,18 @@ private function array_equal_values(array $a, array $b) {
 	// Function to insert a record into the DB
 	public function dBUpdate($s) {
 	
-	//print_r(" --- aColumns: ". $this->aColumns." --- ");
-	
-	   	//echo " --- Running dBUpdate --- ";
-	
-	/*
-		// Check to make sure the JSON we received is valid
-		if (!$this->setQueryParamsFromData($s)) {
-			echo "Error.  The JSON String received was not valid, or was not in the correct format.";
-			return false;
-		}
-		else {
-			$this->setQueryParamsFromData($s);
-		}	
-	*/
-
-
 	$this->setQueryParamsFromData($s);
 	
+	/*
 		$mysql_host 	= 	'localhost';
 		$mysql_user 	= 	'signature';
 		$mysql_pass 	= 	'signature';
 		$mysql_db 		= 	'jquery';
+*/
 
+
+		/*
+	
 		try {
     		$conn = new PDO("mysql:host=$mysql_host;dbname=$mysql_db", $mysql_user, $mysql_pass);
     		$conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -262,19 +208,18 @@ private function array_equal_values(array $a, array $b) {
 		} catch(PDOException $e) {
    			echo 'ERROR: ' . $e->getMessage();
 		}
+		
+		*/
 	
 		// Build a dynamic SQL Statement from the original JSON Array
 			$sQuery = "
 				UPDATE $this->sTable SET ".$this->sSetClause."
 				WHERE ".$this->sWheresClause."
 				";
-/*
-echo " ----- SQL Statement -----";
-echo $sQuery;
-echo " -------------------------";
-*/
+
 		try {
-				$sql = $conn->prepare($sQuery);
+				//$sql = $conn->prepare($sQuery);
+				$sql = $this->parent_object->conn->prepare($sQuery);
 
 
 				if (isset($this->dataArr['set'])) {
@@ -287,32 +232,19 @@ echo " -------------------------";
 						$i++;
 					}
 				}
-		/*		
-				if (isset($this->dataArr['set'])) {
-					foreach ($this->sSet as $key => $value) {
-						$name = ':'.$key;
-						$sql->bindValue($name, $value, PDO::PARAM_STR);
-					}
-				}
-				*/
+
 				// Bind the PDO variables for the WHERE clause				
 				if (isset($this->dataArr['where'])) {
 					foreach ($this->sWheres as $key => $value) {
 						$name = ':'.$key;
-						$sql->bindValue($name, $value, PDO::PARAM_STR);
+						//$sql->bindValue($name, $value, PDO::PARAM_STR);
+						// Apostrophie bug
+						$sql->bindValue($name, trim(str_replace('\'', ' ', ($value))), PDO::PARAM_STR);
 					}
 				}
 
-//echo " ----- SQL Statement -----";
-//print_r($sql);
-//echo " -------------------------";
-
 			$sql->execute();
 
-//echo " ----- POST PDO SQL Statement -----";
-//print_r($sql);
-//echo " -------------------------";
-			
 			echo $sql->rowCount();
 			} 	catch(PDOException $e) {
   				echo 'Error: ' . $e->getMessage();
