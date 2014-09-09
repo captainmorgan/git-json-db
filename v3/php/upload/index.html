@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<head>
+    <title>MySQL file upload example</title>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    
+</head>
+<body>
+Files:
+    <form action="add_file.php" method="post" enctype="multipart/form-data">
+        <input type="file" name="uploaded_file"><br>
+        <input type="submit" value="Upload file">
+       
+    </form>
+Photos:    
+    <form action="add_photo.php" method="post" enctype="multipart/form-data">
+        <input type="file" name="uploaded_photo"><br>
+        <input type="submit" value="Upload photo">
+       
+    </form>    
+    
+    <p>
+        <a href="list_files.php">See all files</a><br />
+        <a href="../../datatables/php/icon_datatable_builder.php?q=id,name,mime,size,created&t=file">See all files in a DataTable</a>
+        <br />
+        <a href="list_photos.php">See all photos</a><br />
+        <a href="../../datatables/php/icon_datatable_builder.php?q=id,name,mime,size,created&t=photo">See all photos in a DataTable</a>
+    </p>
+</body>
+
+<script>
+/*
+$(document).ready(function() {
+
+
+$('#submit_button').click(function() {
+	// grab values
+	var file = $('#uploaded_file').val();
+	console.log("file: "+file);
+	// Fixes an awkward error where the compression library will crash if you send it a null value.
+	//if ( $('#uploaded_file').val() ){
+		var compFile = deflateFromJsonSignature( $('#uploaded_file').val() );
+		console.log("compFile: "+compFile);
+	//} else { var compFile = "1"; } // A value of 1 is better than a crash, amiright?
+
+	// perform http request
+	// POST the name and compressed signature to 'create_sig.php'
+	// uses a callback function to collect a string that 'create_sig.php' is returning
+	$.post('./add_file.php', { uploaded_file: compFile }, function(data) {
+	});
+});
+
+});
+*/
+</script>
+
+</html>
